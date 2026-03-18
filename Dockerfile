@@ -1,4 +1,4 @@
-FROM python:3.11.3-alpine3.18
+FROM python:3.12-alpine
 
 # Essa variável de ambiente é usada para controlar se o Python deve 
 # gravar arquivos de bytecode (.pyc) no disco. 1 = Não, 0 = Sim
@@ -25,18 +25,22 @@ EXPOSE 8000
 # imagem como uma nova camada.
 # Agrupar os comandos em um único RUN pode reduzir a quantidade de camadas da 
 # imagem e torná-la mais eficiente.
-RUN python -m venv venv && \
-    venv/bin/pip install --upgrade pip && \
-    venv/bin/pip install -r requirements.txt
-    adduser --disabled-password --no-create-home duser && \
+RUN apk add --no-cache dos2unix && \
+    dos2unix /app/scripts/commands.sh && \
+    apk add --no-cache python3 py3-pip py3-virtualenv && \
+    python -m venv venv && \
+    ./venv/bin/python -m ensurepip && \
+    ./venv/bin/python -m pip install --upgrade pip && \
+    ./venv/bin/python -m pip install -r requirements.txt && \
+    adduser -D duser && \
     mkdir -p /app/data/web/static && \
     mkdir -p /app/data/web/media && \
     chown -R duser:duser venv && \
     chown -R duser:duser /app/data/web/static && \
-    chown -R duser:duser /app/data/web/media
+    chown -R duser:duser /app/data/web/media && \
     chmod -R 755 /app/data/web/static && \
     chmod -R 755 /app/data/web/media && \
-    chmod -R +x /scripts
+    chmod +x /app/scripts/commands.sh
 
 # Adiciona a pasta scripts e venv/bin 
 # no $PATH do container.
@@ -46,4 +50,4 @@ ENV PATH="/app/venv/bin:/app/scripts:${PATH}"
 USER duser
 
 # Executa o arquivo scripts/commands.sh
-CMD ["commands.sh"]
+CMD ["sh", "/app/scripts/commands.sh"]
